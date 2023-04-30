@@ -86,7 +86,7 @@ int main(int argc, char *argv[]) {
     }
 
     double totalTime = get_wall_seconds() - startTime;
-    printf("Tame taken for the simulation of %d particals for %d steps = %lf seconds.\n", N, nsteps, totalTime);
+    printf("Time taken for the simulation of %d particals for %d steps = %lf seconds.\n", N, nsteps, totalTime);
 
     // SAVE DATA TO FILE
     save_file_v1(N, particles);
