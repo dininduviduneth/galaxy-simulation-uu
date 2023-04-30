@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 typedef struct
 {
@@ -12,6 +13,7 @@ typedef struct
 } Particle;
 
 Particle* read_data_v1(int particle_count, char* filename);
+void save_file_v1(int particle_count, Particle* particles);
 void print_data(int N, Particle* particles);
 
 int main(int argc, char *argv[]) {
@@ -33,12 +35,15 @@ int main(int argc, char *argv[]) {
     Particle* particles = read_data_v1(N, filename);
 
     if(particles == NULL) {
-        printf("Didn't work!");
+        printf("The data didn't get loaded correctly! Please try again with correct parameters.\n");
         return 0;
     }
 
     // PRINT DATA TO CHECK
     // print_data(N, particles);
+
+    // SAVE DATA TO FILE
+    save_file_v1(N, particles);
 
     free(particles);
     return 0;
@@ -78,6 +83,19 @@ Particle* read_data_v1(int particle_count, char* filename) {
   }
 
   return particles;
+}
+
+void save_file_v1(int particle_count, Particle* particles) {
+    FILE *output_file = fopen("result.gal", "wb");
+
+    for(int i = 0; i < particle_count; i++) {
+        fwrite(&particles[i].posx, sizeof(double), 1, output_file);
+        fwrite(&particles[i].posy, sizeof(double), 1, output_file);
+        fwrite(&particles[i].mass, sizeof(double), 1, output_file);
+        fwrite(&particles[i].velx, sizeof(double), 1, output_file);
+        fwrite(&particles[i].vely, sizeof(double), 1, output_file);
+        fwrite(&particles[i].brightness, sizeof(double), 1, output_file);
+    }
 }
 
 void print_data(int N, Particle* particles) {
