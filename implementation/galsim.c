@@ -1,35 +1,47 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
+#include <sys/time.h>
 
 typedef struct
 {
-    double posx;
-    double posy;
-    double mass;
-    double velx;
-    double vely;
-    double brightness;
+  double posx;
+  double posy;
+  double mass;
+  double velx;
+  double vely;
+  double brightness;
 } Particle;
 
 Particle* read_data_v1(int particle_count, char* filename);
 void save_file_v1(int particle_count, Particle* particles);
 void print_data(int N, Particle* particles);
 
+static double get_wall_seconds() {
+  struct timeval tv;
+  gettimeofday(&tv, NULL);
+  double seconds = tv.tv_sec + (double)tv.tv_usec / 1000000;
+  return seconds;
+}
+
 int main(int argc, char *argv[]) {
 
-    // Combine all validation (including type checks) into one method validateInput()
-    if(argc != 6) {
-        printf("I expect more arguments than this from you!\n");
-        return 0;
-    }
+  // Combine all validation (including type checks) into one method validateInput()
+  if(argc != 6) {
+    printf("In correct number of arguments!\n");
+    printf("Usage: %s N filename nsteps delta_t graphics\n", argv[0]);
+    return 0;
+  }
 
     // Save passed arguments from the command
-    int N = atoi(argv[1]);
+    const int N = atoi(argv[1]);
     char* filename = argv[2];
-    int nsteps = atoi(argv[3]);
-    double delta_t = atof(argv[4]);
+    const int nsteps = atoi(argv[3]);
+    const float delta_t = atof(argv[4]);
     int graphics = atoi(argv[5]);
+    const double epsilon = 0.001;
+    const double G = 100.0/N;
 
     /* Read files. */
     Particle* particles = read_data_v1(N, filename);
@@ -39,8 +51,42 @@ int main(int argc, char *argv[]) {
         return 0;
     }
 
-    // PRINT DATA TO CHECK
-    // print_data(N, particles);
+    double aX, aY, rx,  ry, r, rr, div_1_rr;
+    double startTime = get_wall_seconds();
+
+    // Start simulation
+    for (int step = 0; step < nsteps; step++){
+
+      /* Only the position of particles is needed to simulate the movement of other particles
+      Therefore within the first loop accelerations are calculated and all the velocities for n+1 step is updated appropriately
+      Positions cannot be updated witin the same loop */
+      for(int i = 0; i < N; i++) {
+          aX = 0;
+          aY = 0;
+          for (int j = 0; j < N; j++) {
+              if (i != j){
+                rx = particles[i].posx - particles[j].posx;
+                ry = particles[i].posy - particles[j].posx;
+                r = sqrt(rx*rx + ry*ry);
+                rr = r + epsilon;
+                div_1_rr = 1/(rr*rr*rr);
+                aX += particles[j].mass*rx*div_1_rr;
+                aY += particles[j].mass*ry*div_1_rr;
+              }
+          }
+          particles[i].velx = particles[i].velx + delta_t*-G*aX;
+          particles[i].vely = particles[i].vely + delta_t*-G*aY;
+      }
+
+      for(int i = 0; i < N; i++) {
+          particles[i].posx = particles[i].posx + particles[i].velx*delta_t;
+          particles[i].posy = particles[i].posy + particles[i].vely*delta_t;
+      }
+
+    }
+
+    double totalTime = get_wall_seconds() - startTime;
+    printf("Time taken for the simulation of %d particals for %d steps = %lf seconds.\n", N, nsteps, totalTime);
 
     // SAVE DATA TO FILE
     save_file_v1(N, particles);
@@ -48,6 +94,7 @@ int main(int argc, char *argv[]) {
     free(particles);
     return 0;
 }
+
 
 Particle* read_data_v1(int particle_count, char* filename) {
   /* Open input file and determine its size. */
@@ -69,7 +116,9 @@ Particle* read_data_v1(int particle_count, char* filename) {
   }
 
   double buffer[6 * particle_count];
-  fread(buffer, sizeof(char), fileSize, input_file);
+  if (!fread(buffer, sizeof(char), fileSize, input_file)) {
+      printf("Failed to read.\n");
+  }
 
   Particle* particles = malloc(particle_count * sizeof(Particle));
 
