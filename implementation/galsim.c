@@ -48,13 +48,13 @@ int main(int argc, char *argv[])
     }
 
     // RUN SIMULATION
-    // simulate_v1(particles, N, steps, delta_t);
+    simulate_v1(particles, N, steps, delta_t);
 
     // SAVE DATA TO FILE
-    // save_file_v1(N, particles);
+    save_file_v1(N, particles);
 
     // PRINT DATA TO CHECK
-    print_data(N, particles);
+    // print_data(N, particles);
 
     free(particles);
     return 0;
