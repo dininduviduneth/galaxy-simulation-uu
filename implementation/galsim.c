@@ -132,6 +132,7 @@ void simulate_v1(Particle *particles, int particle_count, int G, int steps, doub
     double a_x, a_y; // X and Y components of the acceleration vector
     double r_x, r_y; // X and Y components of the realtive position vector
     double r_xy;     // Distance between two particles
+    double r_xy_eps_3;
 
     // Run simulations for given number of steps
     for (int iteration = 0; iteration < steps; iteration++)
@@ -151,9 +152,10 @@ void simulate_v1(Particle *particles, int particle_count, int G, int steps, doub
                     r_y = particles[i].posy - particles[j].posy;
 
                     r_xy = sqrt(pow((r_x), 2) + pow((r_y), 2));
+                    r_xy_eps_3 = pow(r_xy + eps, 3);
 
-                    a_x += (particles[j].mass * r_x) / r_xy;
-                    a_y += (particles[j].mass * r_y) / r_xy;
+                    a_x += (particles[j].mass * r_x) / r_xy_eps_3;
+                    a_y += (particles[j].mass * r_y) / r_xy_eps_3;
                 }
             }
 
