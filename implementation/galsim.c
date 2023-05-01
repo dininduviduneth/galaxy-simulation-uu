@@ -13,11 +13,10 @@ typedef struct
     double brightness;
 } Particle;
 
-const double G = 100;
 const double eps = 1e-3;
 
 Particle *read_data_v1(int particle_count, char *filename);
-void simulate_v1(Particle *particles, int particle_count, int steps, double delta_t);
+void simulate_v1(Particle *particles, int particle_count, int G, int steps, double delta_t);
 void save_file_v1(int particle_count, Particle *particles);
 void print_data(int N, Particle *particles);
 
@@ -37,6 +36,7 @@ int main(int argc, char *argv[])
     int steps = atoi(argv[3]);
     double delta_t = atof(argv[4]);
     int graphics = atoi(argv[5]);
+    double G = 100 / N;
 
     /* Read files. */
     Particle *particles = read_data_v1(N, filename);
@@ -48,7 +48,7 @@ int main(int argc, char *argv[])
     }
 
     // RUN SIMULATION
-    simulate_v1(particles, N, steps, delta_t);
+    simulate_v1(particles, N, G, steps, delta_t);
 
     // SAVE DATA TO FILE
     save_file_v1(N, particles);
@@ -127,7 +127,7 @@ void print_data(int N, Particle *particles)
     }
 }
 
-void simulate_v1(Particle *particles, int particle_count, int steps, double delta_t)
+void simulate_v1(Particle *particles, int particle_count, int G, int steps, double delta_t)
 {
     double a_x, a_y; // X and Y components of the acceleration vector
     double r_x, r_y; // X and Y components of the realtive position vector
