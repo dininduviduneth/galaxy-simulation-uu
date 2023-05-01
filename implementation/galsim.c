@@ -97,6 +97,8 @@ Particle *read_data_v1(int particle_count, char *filename)
         particles[i].brightness = buffer[(6 * i) + 5];
     }
 
+    fclose(input_file);
+
     return particles;
 }
 
@@ -131,8 +133,8 @@ void simulate_v1(Particle *particles, int particle_count, int G, int steps, doub
 {
     double a_x, a_y; // X and Y components of the acceleration vector
     double r_x, r_y; // X and Y components of the realtive position vector
-    double r_xy;     // Distance between two particles
-    double r_xy_eps_3;
+    double r_xy; // Distance between two particles
+    double r_xy_eps_3; // Distance between two particles plus epsilon to the power 3
 
     // Run simulations for given number of steps
     for (int iteration = 0; iteration < steps; iteration++)
