@@ -34,7 +34,7 @@ int main(int argc, char *argv[])
     const int N = atoi(argv[1]);
     char *filename = argv[2];
     const int nsteps = atoi(argv[3]);
-    const float delta_t = atof(argv[4]);
+    const double delta_t = (double)atof(argv[4]);
     int graphics = atoi(argv[5]);
     const double epsilon = 0.001;
     const double G = 100.0 / N;

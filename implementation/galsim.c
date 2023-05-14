@@ -171,7 +171,7 @@ void simulate_v1(Particle *particles, int particle_count, int G, int steps, doub
         for (int i = 0; i < particle_count; i++)
         {
             particles[i].posx += delta_t * particles[i].velx;
-            particles[i].posx += delta_t * particles[i].velx;
+            particles[i].posy += delta_t * particles[i].vely;
         }
     }
 }
