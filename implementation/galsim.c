@@ -40,6 +40,7 @@ int main(int argc, char *argv[])
     int graphics = atoi(argv[5]);
     const double epsilon = 0.001;
     const double G = 100.0 / N;
+    const double dtG = delta_t * (-G);
 
     if (graphics == 1)
     {
@@ -140,22 +141,25 @@ int main(int argc, char *argv[])
             aYi = 0.0;
             for (int j = 0; j < N; j++)
             {
-                if (i > j)
+                if (i > j) // Since we have already calculated the acceleration of the particles with i < j
                 {
                     rx = particles[i].posx - particles[j].posx;
                     ry = particles[i].posy - particles[j].posy;
                     r = sqrt(rx * rx + ry * ry);
                     rr = r + epsilon;
                     div_1_rr = 1 / (rr * rr * rr);
+
+                    // Calculating the acceleration of the i-th particle based on the forces applied by N-i particles
                     aXi += particles[j].mass * rx * div_1_rr;
                     aYi += particles[j].mass * ry * div_1_rr;
 
-                    particles[j].velx -= particles[i].mass * rx * div_1_rr;
-                    particles[j].vely -= particles[i].mass * ry * div_1_rr;
+                    // Substracting the velocity change on the j-th particle due to the equal and opposite reaction
+                    particles[j].velx -= dtG * particles[i].mass * rx * div_1_rr;
+                    particles[j].vely -= dtG * particles[i].mass * ry * div_1_rr;
                 }
             }
-            particles[i].velx += delta_t * (-G) * aX;
-            particles[i].vely += delta_t * (-G) * aY;
+            particles[i].velx += dtG * aXi;
+            particles[i].vely += dtG * aYi;
         }
 
         for (int i = 0; i < N; i++)
