@@ -4,8 +4,6 @@
 #include <math.h>
 #include <sys/time.h>
 
-#define VERSION 2
-
 typedef struct
 {
     double posx;
@@ -40,7 +38,6 @@ int main(int argc, char *argv[])
     int graphics = atoi(argv[5]);
     const double epsilon = 0.001;
     const double G = 100.0 / N;
-    const double dtG = delta_t * (-G);
 
     if (graphics == 1)
     {
@@ -57,43 +54,38 @@ int main(int argc, char *argv[])
     }
 
     // Variables needed for calcluations
-    double aXi, aYi, rx, ry, r, rr, div_1_rr;
-    double rx_div, ry_div;
+    double aX, aY, rx, ry, r, rr, div_1_rr;
     double startTime = get_wall_seconds();
 
-#if VERSION == 0
-    // Start simulation - Unoptimized version
-    for (int step = 0; step < nsteps; step++)
-    {
-        for (int i = 0; i < N; i++)
-        {
-            aXi = 0.0;
-            aYi = 0.0;
-            for (int j = 0; j < N; j++)
-            {
-                if (i != j)
-                {
-                    rx = particles[i].posx - particles[j].posx;
-                    ry = particles[i].posy - particles[j].posy;
-                    r = sqrt(pow(rx, 2) + pow(ry, 2));
-                    rr = r + epsilon;
-                    aXi += particles[j].mass * rx / pow(rr, 3);
-                    aYi += particles[j].mass * ry / pow(rr, 3);
-                }
-            }
-            particles[i].velx = particles[i].velx + delta_t * (-1) * G * aXi;
-            particles[i].vely = particles[i].vely + delta_t * (-1) * G * aYi;
-        }
+    /*   // Start simulation - Unoptimized version
 
-        for (int i = 0; i < N; i++)
-        {
-            particles[i].posx = particles[i].posx + particles[i].velx * delta_t;
-            particles[i].posy = particles[i].posy + particles[i].vely * delta_t;
-        }
-    }
-    // End simulation - Unoptimized version
+       for (int step = 0; step < nsteps; step++){
+           for(int i = 0; i < N; i++) {
+               aX = 0.0;
+               aY = 0.0;
+               for (int j = 0; j < N; j++) {
+                   if (i != j){
+                       rx = particles[i].posx - particles[j].posx;
+                       ry = particles[i].posy - particles[j].posy;
+                       r = sqrt(pow(rx,2) + pow(ry,2));
+                       rr = r + epsilon;
+                       aX += particles[j].mass*rx / pow(rr,3);
+                       aY += particles[j].mass*ry / pow(rr,3);
+                   }
+               }
+               particles[i].velx = particles[i].velx + delta_t*(-1)*G*aX;
+               particles[i].vely = particles[i].vely + delta_t*(-1)*G*aY;
+           }
 
-#elif VERSION == 1
+           for(int i = 0; i < N; i++) {
+               particles[i].posx = particles[i].posx + particles[i].velx*delta_t;
+               particles[i].posy = particles[i].posy + particles[i].vely*delta_t;
+           }
+       }
+
+       // End simulation - Unoptimized version
+   */
+
     // Start simulation - Optimized version
     for (int step = 0; step < nsteps; step++)
     {
@@ -102,8 +94,8 @@ int main(int argc, char *argv[])
         // Positions cannot be updated witin the same loop
         for (int i = 0; i < N; i++)
         {
-            aXi = 0.0;
-            aYi = 0.0;
+            aX = 0.0;
+            aY = 0.0;
             for (int j = 0; j < N; j++)
             {
                 if (i != j)
@@ -113,12 +105,12 @@ int main(int argc, char *argv[])
                     r = sqrt(rx * rx + ry * ry);
                     rr = r + epsilon;
                     div_1_rr = 1 / (rr * rr * rr);
-                    aXi += particles[j].mass * rx * div_1_rr;
-                    aYi += particles[j].mass * ry * div_1_rr;
+                    aX += particles[j].mass * rx * div_1_rr;
+                    aY += particles[j].mass * ry * div_1_rr;
                 }
             }
-            particles[i].velx = particles[i].velx + delta_t * (-G) * aXi;
-            particles[i].vely = particles[i].vely + delta_t * (-G) * aYi;
+            particles[i].velx = particles[i].velx + delta_t * (-G) * aX;
+            particles[i].vely = particles[i].vely + delta_t * (-G) * aY;
         }
 
         for (int i = 0; i < N; i++)
@@ -127,48 +119,6 @@ int main(int argc, char *argv[])
             particles[i].posy = particles[i].posy + particles[i].vely * delta_t;
         }
     }
-
-#else
-    // Start simulation - Optimized version 2
-    for (int step = 0; step < nsteps; step++)
-    {
-        // Only the position of particles is needed to simulate the movement of other particles
-        // Therefore within the first loop accelerations are calculated and all the velocities for n+1 step is updated appropriately
-        // Positions cannot be updated witin the same loop
-        for (int i = 0; i < N; i++)
-        {
-            aXi = 0.0;
-            aYi = 0.0;
-            for (int j = 0; j <i; j++)
-            {
-                rx = particles[i].posx - particles[j].posx;
-                ry = particles[i].posy - particles[j].posy;
-                r = sqrt(rx * rx + ry * ry);
-                rr = r + epsilon;
-                div_1_rr = dtG / (rr * rr * rr);
-                rx_div = rx*div_1_rr;
-                ry_div = ry*div_1_rr;
-
-                // Calculating the acceleration of the i-th particle based on the forces applied by N-i particles
-                aXi += particles[j].mass * rx_div;
-                aYi += particles[j].mass * ry_div;
-
-                // Substracting the velocity change on the j-th particle due to the equal and opposite reaction
-                particles[j].velx -=  particles[i].mass * rx_div;
-                particles[j].vely -=  particles[i].mass * ry_div;
-            }
-            particles[i].velx += aXi;
-            particles[i].vely += aYi;
-        }
-
-        for (int i = 0; i < N; i++)
-        {
-            particles[i].posx = particles[i].posx + particles[i].velx * delta_t;
-            particles[i].posy = particles[i].posy + particles[i].vely * delta_t;
-        }
-    }
-
-#endif
 
     double totalTime = get_wall_seconds() - startTime;
     printf("Time taken for the simulation of %d particals for %d steps = %lf seconds.\n", N, nsteps, totalTime);
