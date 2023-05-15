@@ -57,8 +57,8 @@ int main(int argc, char *argv[])
     }
 
     // Variables needed for calcluations
-    double aX, aY, rx, ry, r, rr, div_1_rr;
-    double aXi, aYi, aXj, aYj;
+    double aXi, aYi, rx, ry, r, rr, div_1_rr;
+    double rx_div, ry_div;
     double startTime = get_wall_seconds();
 
 #if VERSION == 0
@@ -67,8 +67,8 @@ int main(int argc, char *argv[])
     {
         for (int i = 0; i < N; i++)
         {
-            aX = 0.0;
-            aY = 0.0;
+            aXi = 0.0;
+            aYi = 0.0;
             for (int j = 0; j < N; j++)
             {
                 if (i != j)
@@ -77,12 +77,12 @@ int main(int argc, char *argv[])
                     ry = particles[i].posy - particles[j].posy;
                     r = sqrt(pow(rx, 2) + pow(ry, 2));
                     rr = r + epsilon;
-                    aX += particles[j].mass * rx / pow(rr, 3);
-                    aY += particles[j].mass * ry / pow(rr, 3);
+                    aXi += particles[j].mass * rx / pow(rr, 3);
+                    aYi += particles[j].mass * ry / pow(rr, 3);
                 }
             }
-            particles[i].velx = particles[i].velx + delta_t * (-1) * G * aX;
-            particles[i].vely = particles[i].vely + delta_t * (-1) * G * aY;
+            particles[i].velx = particles[i].velx + delta_t * (-1) * G * aXi;
+            particles[i].vely = particles[i].vely + delta_t * (-1) * G * aYi;
         }
 
         for (int i = 0; i < N; i++)
@@ -102,8 +102,8 @@ int main(int argc, char *argv[])
         // Positions cannot be updated witin the same loop
         for (int i = 0; i < N; i++)
         {
-            aX = 0.0;
-            aY = 0.0;
+            aXi = 0.0;
+            aYi = 0.0;
             for (int j = 0; j < N; j++)
             {
                 if (i != j)
@@ -113,12 +113,12 @@ int main(int argc, char *argv[])
                     r = sqrt(rx * rx + ry * ry);
                     rr = r + epsilon;
                     div_1_rr = 1 / (rr * rr * rr);
-                    aX += particles[j].mass * rx * div_1_rr;
-                    aY += particles[j].mass * ry * div_1_rr;
+                    aXi += particles[j].mass * rx * div_1_rr;
+                    aYi += particles[j].mass * ry * div_1_rr;
                 }
             }
-            particles[i].velx = particles[i].velx + delta_t * (-G) * aX;
-            particles[i].vely = particles[i].vely + delta_t * (-G) * aY;
+            particles[i].velx = particles[i].velx + delta_t * (-G) * aXi;
+            particles[i].vely = particles[i].vely + delta_t * (-G) * aYi;
         }
 
         for (int i = 0; i < N; i++)
@@ -139,27 +139,26 @@ int main(int argc, char *argv[])
         {
             aXi = 0.0;
             aYi = 0.0;
-            for (int j = 0; j < N; j++)
+            for (int j = 0; j <i; j++)
             {
-                if (i > j) // Since we have already calculated the acceleration of the particles with i < j
-                {
-                    rx = particles[i].posx - particles[j].posx;
-                    ry = particles[i].posy - particles[j].posy;
-                    r = sqrt(rx * rx + ry * ry);
-                    rr = r + epsilon;
-                    div_1_rr = 1 / (rr * rr * rr);
+                rx = particles[i].posx - particles[j].posx;
+                ry = particles[i].posy - particles[j].posy;
+                r = sqrt(rx * rx + ry * ry);
+                rr = r + epsilon;
+                div_1_rr = dtG / (rr * rr * rr);
+                rx_div = rx*div_1_rr;
+                ry_div = ry*div_1_rr;
 
-                    // Calculating the acceleration of the i-th particle based on the forces applied by N-i particles
-                    aXi += particles[j].mass * rx * div_1_rr;
-                    aYi += particles[j].mass * ry * div_1_rr;
+                // Calculating the acceleration of the i-th particle based on the forces applied by N-i particles
+                aXi += particles[j].mass * rx_div;
+                aYi += particles[j].mass * ry_div;
 
-                    // Substracting the velocity change on the j-th particle due to the equal and opposite reaction
-                    particles[j].velx -= dtG * particles[i].mass * rx * div_1_rr;
-                    particles[j].vely -= dtG * particles[i].mass * ry * div_1_rr;
-                }
+                // Substracting the velocity change on the j-th particle due to the equal and opposite reaction
+                particles[j].velx -=  particles[i].mass * rx_div;
+                particles[j].vely -=  particles[i].mass * ry_div;
             }
-            particles[i].velx += dtG * aXi;
-            particles[i].vely += dtG * aYi;
+            particles[i].velx += aXi;
+            particles[i].vely += aYi;
         }
 
         for (int i = 0; i < N; i++)
