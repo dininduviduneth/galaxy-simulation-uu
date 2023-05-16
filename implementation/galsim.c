@@ -78,6 +78,7 @@ int main(int argc, char *argv[])
                 {
                     rx = particles->posx[i] - particles->posx[j];
                     ry = particles->posy[i] - particles->posy[j];
+                    
                     r = sqrt(rx * rx + ry * ry);
                     rr = r + epsilon;
                     div_1_rr = 1 / (rr * rr * rr);
@@ -85,8 +86,8 @@ int main(int argc, char *argv[])
                     aYi += particles->mass[j] * ry * div_1_rr;
                 }
             }
-            particles->velx[i] += delta_t * (-G) * aXi;
-            particles->vely[i] += delta_t * (-G) * aYi;
+            particles->velx[i] += dtG * aXi;
+            particles->vely[i] += dtG * aYi;
         }
 
         for (int i = 0; i < N; i++)
@@ -119,7 +120,6 @@ int main(int argc, char *argv[])
 
                 // Calculating the acceleration of the i-th particle based on the forces applied by N-i particles
                 aXi += particles[j].mass * rx_div;
-                aXi
                 aYi += particles[j].mass * ry_div;
 
                 // Substracting the velocity change on the j-th particle due to the equal and opposite reaction
