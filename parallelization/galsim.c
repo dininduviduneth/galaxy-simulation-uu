@@ -3,50 +3,66 @@
 #include <string.h>
 #include <math.h>
 #include <sys/time.h>
+#include <pthread.h>
 
 #define VERSION 1
 
 typedef struct
 {
-    double* posx;
-    double* posy;
-    double* mass;
-    double* velx;
-    double* vely;
-    double* accx;
-    double* accy;
-    double* brightness;
+    double *posx;
+    double *posy;
+    double *mass;
+    double *velx;
+    double *vely;
+    double *accx;
+    double *accy;
+    double *brightness;
 } Particles;
+
+typedef struct
+{
+    int start_n;
+    int end_n;
+    int N;
+    double epsilon;
+    double dtG;
+    double delta_t;
+    Particles *particles;
+} ThreadInput;
 
 Particles *read_data_v1(int particle_count, char *filename);
 void save_file_v1(int particle_count, Particles *particles);
 void print_data(int N, Particles *particles);
+void *update_acceleration(void *arg);
+void *update_velocity(void *arg);
+void *update_position(void *arg);
 double get_wall_seconds();
 
 int main(int argc, char *argv[])
 {
 
     // Combine all validation (including type checks) into one method validateInput()
-    if (argc != 6)
+    if (argc != 7)
     {
         printf("Incorrect number of arguments!\n");
         printf("Usage: %s N filename nsteps delta_t graphics\n", argv[0]);
         return 0;
     }
 
-    // Save passed arguments from the command
+    // Save parsed arguments from the command
     const int N = atoi(argv[1]);
     char *filename = argv[2];
     const int nsteps = atoi(argv[3]);
     const double delta_t = (double)atof(argv[4]);
     int graphics = atoi(argv[5]);
+    int thread_count = atoi(argv[6]);
     const double epsilon = 0.001;
     const double G = 100.0 / N;
     const double dtG = delta_t * (-G);
 
     if (graphics == 1)
     {
-        printf("Graphic implementation is not done. You will see the simulation results in result.gal file.\n");
+        printf("Graphics implementation is not done. You will see the simulation results in result.gal file.\n");
     }
 
     /* Read files. */
@@ -64,38 +80,69 @@ int main(int argc, char *argv[])
     double startTime = get_wall_seconds();
 
 #if VERSION == 1
-    // Start simulation - Optimized version 1
+    // Start simulation - Parallelized version 1
+
+    /* Create multiple threads */
+    pthread_t threads[thread_count];
+    /* Create an array of indeces */
+    int thread_index[thread_count];
+    /* Create an array of ThreadInputs */
+    ThreadInput thread_input[thread_count];
+
+    // initialize the thread input array
+    for (int i = 0; i < thread_count; i++)
+    {
+        ThreadInput temp_thread_input = {
+            (N / thread_count) * i,
+            (N / thread_count) * (i + 1),
+            N,
+            epsilon,
+            dtG,
+            delta_t,
+            particles
+        };
+        thread_input[i] = temp_thread_input;
+    }
+
     for (int step = 0; step < nsteps; step++)
     {
-        // Only the position of particles is needed to simulate the movement of other particles
-        // Therefore within the first loop accelerations are calculated and all the velocities for n+1 step is updated appropriately
-        // Positions cannot be updated witin the same loop
-        for (int i = 0; i < N; i++)
+        // Start N number of threads for updating acceleration
+        for (int i = 0; i < thread_count; i++)
         {
-            particles->accx[i] = 0.0;
-            particles->accy[i] = 0.0;
-            for (int j = 0; j < N; j++)
-            {
-                if (i != j)
-                {
-                    rx = particles->posx[i] - particles->posx[j];
-                    ry = particles->posy[i] - particles->posy[j];
-                    
-                    r = sqrt(rx * rx + ry * ry);
-                    rr = r + epsilon;
-                    div_1_rr = 1 / (rr * rr * rr);
-                    particles->accx[i] += particles->mass[j] * rx * div_1_rr;
-                    particles->accy[i] += particles->mass[j] * ry * div_1_rr;
-                }
-            }
-            particles->velx[i] += dtG * particles->accx[i];
-            particles->vely[i] += dtG * particles->accy[i];
+            thread_index[i] = i;
+            pthread_create(&threads[i], NULL, update_acceleration, &thread_input[i]);
         }
 
-        for (int i = 0; i < N; i++)
+        // Join N number of threads after updating acceleration
+        for (int i = 0; i < thread_count; i++)
         {
-            particles->posx[i] += particles->velx[i] * delta_t;
-            particles->posy[i] += particles->vely[i] * delta_t;
+            pthread_join(threads[i], NULL);
+        }
+
+        // Start N number of threads for updating velocity
+        for (int i = 0; i < thread_count; i++)
+        {
+            thread_index[i] = i;
+            pthread_create(&threads[i], NULL, update_velocity, &thread_input[i]);
+        }
+
+        // Join N number of threads after updating velocity
+        for (int i = 0; i < thread_count; i++)
+        {
+            pthread_join(threads[i], NULL);
+        }
+
+        // Start N number of threads for updating position
+        for (int i = 0; i < thread_count; i++)
+        {
+            thread_index[i] = i;
+            pthread_create(&threads[i], NULL, update_position, &thread_input[i]);
+        }
+
+        // Join N number of threads after updating position
+        for (int i = 0; i < thread_count; i++)
+        {
+            pthread_join(threads[i], NULL);
         }
     }
 
@@ -110,23 +157,23 @@ int main(int argc, char *argv[])
         {
             particles->accx[i] = 0.0;
             particles->accy[i] = 0.0;
-            for (int j = 0; j <i; j++)
+            for (int j = 0; j < i; j++)
             {
                 rx = particles->posx[i] - particles->posx[j];
                 ry = particles->posy[i] - particles->posy[j];
                 r = sqrt(rx * rx + ry * ry);
                 rr = r + epsilon;
                 div_1_rr = dtG / (rr * rr * rr);
-                rx_div = rx*div_1_rr;
-                ry_div = ry*div_1_rr;
+                rx_div = rx * div_1_rr;
+                ry_div = ry * div_1_rr;
 
                 // Calculating the acceleration of the i-th particle based on the forces applied by N-i particles
                 particles->accx[i] += particles->mass[j] * rx_div;
                 particles->accy[i] += particles->mass[j] * ry_div;
 
                 // Substracting the velocity change on the j-th particle due to the equal and opposite reaction
-                particles->velx[j] -=  particles->mass[i] * rx_div;
-                particles->vely[j] -=  particles->mass[i] * ry_div;
+                particles->velx[j] -= particles->mass[i] * rx_div;
+                particles->vely[j] -= particles->mass[i] * ry_div;
             }
             particles->velx[i] += particles->accx[i];
             particles->vely[i] += particles->accy[i];
@@ -160,6 +207,75 @@ int main(int argc, char *argv[])
     free(particles);
     return 0;
 }
+
+#if VERSION == 1
+void *update_acceleration(void *arg)
+{
+    ThreadInput *thread_input = (ThreadInput *)arg;
+    int start_n = thread_input->start_n;
+    int end_n = thread_input->end_n;
+
+    // Variables needed for calcluations
+    double rx, ry, r, rr, div_1_rr;
+
+    for (int i = thread_input->start_n; i < thread_input->end_n; i++)
+    {
+        thread_input->particles->accx[i] = 0.0;
+        thread_input->particles->accy[i] = 0.0;
+        for (int j = 0; j < thread_input->N; j++)
+        {
+            if (i != j)
+            {
+                rx = thread_input->particles->posx[i] - thread_input->particles->posx[j];
+                ry = thread_input->particles->posy[i] - thread_input->particles->posy[j];
+
+                r = sqrt(rx * rx + ry * ry);
+                rr = r + thread_input->epsilon;
+                div_1_rr = 1 / (rr * rr * rr);
+                thread_input->particles->accx[i] += thread_input->particles->mass[j] * rx * div_1_rr;
+                thread_input->particles->accy[i] += thread_input->particles->mass[j] * ry * div_1_rr;
+            }
+        }
+    }
+
+    return NULL;
+}
+
+void *update_velocity(void *arg)
+{
+    ThreadInput *thread_input = (ThreadInput *)arg;
+    int start_n = thread_input->start_n;
+    int end_n = thread_input->end_n;
+
+    for (int i = thread_input->start_n; i < thread_input->end_n; i++)
+    {
+        thread_input->particles->velx[i] += thread_input->dtG * thread_input->particles->accx[i];
+        thread_input->particles->vely[i] += thread_input->dtG * thread_input->particles->accy[i];
+    }
+
+    return NULL;
+}
+
+void *update_position(void *arg)
+{
+    ThreadInput *thread_input = (ThreadInput *)arg;
+    int start_n = thread_input->start_n;
+    int end_n = thread_input->end_n;
+
+    for (int i = thread_input->start_n; i < thread_input->end_n; i++)
+    {
+        thread_input->particles->posx[i] += thread_input->particles->velx[i] * thread_input->delta_t;
+        thread_input->particles->posy[i] += thread_input->particles->vely[i] * thread_input->delta_t;
+    }
+
+    return NULL;
+}
+
+#elif VERSION == 2
+
+
+#endif
+
 
 double get_wall_seconds()
 {
@@ -235,10 +351,11 @@ void save_file_v1(int particle_count, Particles *particles)
 {
 
     FILE *output_file = fopen("result.gal", "wb");
-    if (!output_file) {
+    if (!output_file)
+    {
         printf("Failed to open the output file.\n");
         return;
-}
+    }
 
     for (int i = 0; i < particle_count; i++)
     {
