@@ -99,10 +99,6 @@ int main(int argc, char *argv[])
         }
     }
 
-#elif VERSION == 2
-    // Start simulation - Optimized version 2
-
-
 #else
     // Start simulation - Optimized version 3
     for (int step = 0; step < nsteps; step++)
