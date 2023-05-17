@@ -4,7 +4,7 @@
 #include <math.h>
 #include <sys/time.h>
 
-#define VERSION 1
+#define VERSION 3
 
 typedef struct
 {
@@ -112,8 +112,8 @@ int main(int argc, char *argv[])
         // Positions cannot be updated witin the same loop
         for (int i = 0; i < N; i++)
         {
-            aXi = 0.0;
-            aYi = 0.0;
+            particles->accx[i] = 0.0;
+            particles->accy[i] = 0.0;
             for (int j = 0; j <i; j++)
             {
                 rx = particles->posx[i] - particles->posx[j];
@@ -125,21 +125,21 @@ int main(int argc, char *argv[])
                 ry_div = ry*div_1_rr;
 
                 // Calculating the acceleration of the i-th particle based on the forces applied by N-i particles
-                aXi += particles[j].mass * rx_div;
-                aYi += particles[j].mass * ry_div;
+                particles->accx[i] += particles->mass[j] * rx_div;
+                particles->accy[i] += particles->mass[j] * ry_div;
 
                 // Substracting the velocity change on the j-th particle due to the equal and opposite reaction
-                particles[j].velx -=  particles[i].mass * rx_div;
-                particles[j].vely -=  particles[i].mass * ry_div;
+                particles->velx[j] -=  particles->mass[i] * rx_div;
+                particles->vely[j] -=  particles->mass[i] * ry_div;
             }
-            particles[i].velx += aXi;
-            particles[i].vely += aYi;
+            particles->velx[i] += particles->accx[i];
+            particles->vely[i] += particles->accy[i];
         }
 
         for (int i = 0; i < N; i++)
         {
-            particles[i].posx = particles[i].posx + particles[i].velx * delta_t;
-            particles[i].posy = particles[i].posy + particles[i].vely * delta_t;
+            particles->posx[i] += particles->velx[i] * delta_t;
+            particles->posy[i] += particles->vely[i] * delta_t;
         }
     }
 
