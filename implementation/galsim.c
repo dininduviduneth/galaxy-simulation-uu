@@ -13,6 +13,8 @@ typedef struct
     double* mass;
     double* velx;
     double* vely;
+    double* accx;
+    double* accy;
     double* brightness;
 } Particles;
 
@@ -62,7 +64,7 @@ int main(int argc, char *argv[])
     double startTime = get_wall_seconds();
 
 #if VERSION == 1
-    // Start simulation - Optimized version
+    // Start simulation - Optimized version 1
     for (int step = 0; step < nsteps; step++)
     {
         // Only the position of particles is needed to simulate the movement of other particles
@@ -70,8 +72,8 @@ int main(int argc, char *argv[])
         // Positions cannot be updated witin the same loop
         for (int i = 0; i < N; i++)
         {
-            aXi = 0.0;
-            aYi = 0.0;
+            particles->accx[i] = 0.0;
+            particles->accy[i] = 0.0;
             for (int j = 0; j < N; j++)
             {
                 if (i != j)
@@ -82,12 +84,12 @@ int main(int argc, char *argv[])
                     r = sqrt(rx * rx + ry * ry);
                     rr = r + epsilon;
                     div_1_rr = 1 / (rr * rr * rr);
-                    aXi += particles->mass[j] * rx * div_1_rr;
-                    aYi += particles->mass[j] * ry * div_1_rr;
+                    particles->accx[i] += particles->mass[j] * rx * div_1_rr;
+                    particles->accy[i] += particles->mass[j] * ry * div_1_rr;
                 }
             }
-            particles->velx[i] += dtG * aXi;
-            particles->vely[i] += dtG * aYi;
+            particles->velx[i] += dtG * particles->accx[i];
+            particles->vely[i] += dtG * particles->accy[i];
         }
 
         for (int i = 0; i < N; i++)
@@ -97,8 +99,12 @@ int main(int argc, char *argv[])
         }
     }
 
-#else
+#elif VERSION == 2
     // Start simulation - Optimized version 2
+
+
+#else
+    // Start simulation - Optimized version 3
     for (int step = 0; step < nsteps; step++)
     {
         // Only the position of particles is needed to simulate the movement of other particles
@@ -147,6 +153,14 @@ int main(int argc, char *argv[])
     // SAVE DATA TO FILE
     save_file_v1(N, particles);
 
+    free(particles->posx);
+    free(particles->posy);
+    free(particles->mass);
+    free(particles->velx);
+    free(particles->vely);
+    free(particles->accx);
+    free(particles->accy);
+    free(particles->brightness);
     free(particles);
     return 0;
 }
@@ -202,6 +216,8 @@ Particles *read_data_v1(int particle_count, char *filename)
     particles->mass = malloc(particle_count * sizeof(double));
     particles->velx = malloc(particle_count * sizeof(double));
     particles->vely = malloc(particle_count * sizeof(double));
+    particles->accx = malloc(particle_count * sizeof(double));
+    particles->accy = malloc(particle_count * sizeof(double));
     particles->brightness = malloc(particle_count * sizeof(double));
 
     for (int i = 0; i < particle_count; i++)
@@ -212,6 +228,7 @@ Particles *read_data_v1(int particle_count, char *filename)
         particles->velx[i] = buffer[(6 * i) + 3];
         particles->vely[i] = buffer[(6 * i) + 4];
         particles->brightness[i] = buffer[(6 * i) + 5];
+        // we don't initiate accx and accy at this point - the values will be null
     }
 
     fclose(input_file);
