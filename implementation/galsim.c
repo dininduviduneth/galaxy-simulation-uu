@@ -110,7 +110,7 @@ int main(int argc, char *argv[])
         {
             particles->accx[i] = 0.0;
             particles->accy[i] = 0.0;
-            for (int j = 0; j <i; j++)
+            for (int j = i + 1; j < N; j++)
             {
                 rx = particles->posx[i] - particles->posx[j];
                 ry = particles->posy[i] - particles->posy[j];
@@ -121,15 +121,15 @@ int main(int argc, char *argv[])
                 ry_div = ry*div_1_rr;
 
                 // Calculating the acceleration of the i-th particle based on the forces applied by N-i particles
-                particles->accx[i] += particles->mass[j] * rx_div;
-                particles->accy[i] += particles->mass[j] * ry_div;
+                particles->accx[i] += particles->mass[j] * rx_div / delta_t;
+                particles->accy[i] += particles->mass[j] * ry_div / delta_t;
 
                 // Substracting the velocity change on the j-th particle due to the equal and opposite reaction
                 particles->velx[j] -=  particles->mass[i] * rx_div;
                 particles->vely[j] -=  particles->mass[i] * ry_div;
             }
-            particles->velx[i] += particles->accx[i];
-            particles->vely[i] += particles->accy[i];
+            particles->velx[i] += particles->accx[i] * delta_t;
+            particles->vely[i] += particles->accy[i] * delta_t;
         }
 
         for (int i = 0; i < N; i++)
