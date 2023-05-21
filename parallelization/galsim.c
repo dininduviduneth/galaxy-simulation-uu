@@ -346,10 +346,8 @@ void *update_acceleration_v2(void *arg)
     //printf("Velocity-tmp-x after loop: %lf, %d\n", tmp_velx[3],  thread_input->start_n);
 
     for (int m = 0; m < thread_input->N; m++){
-        pthread_mutex_lock(&mutex);
         thread_input->particles->velx[m] += tmp_velx[m];
         thread_input->particles->vely[m] += tmp_vely[m];
-        pthread_mutex_unlock(&mutex);
     }
 
     //printf("Velocity--x after update: %lf, %d\n", thread_input->particles->velx[3],  thread_input->start_n);
