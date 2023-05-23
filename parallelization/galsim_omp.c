@@ -3,7 +3,7 @@
 #include <string.h>
 #include <math.h>
 #include <sys/time.h>
-#include <pthread.h>
+#include <omp.h>
 
 #define VERSION 1
 
@@ -93,8 +93,6 @@ int main(int argc, char *argv[])
 #if VERSION == 1
     // Start simulation - Parallelized version 1
 
-    /* Create multiple threads */
-    pthread_t threads[thread_count];
     /* Create an array of indeces */
     int thread_index[thread_count];
     /* Create an array of ThreadInputs */
@@ -118,42 +116,24 @@ int main(int argc, char *argv[])
     for (int step = 0; step < nsteps; step++)
     {
         // Start N number of threads for updating acceleration
+        #pragma omp parallel for num_threads(thread_count)
         for (int i = 0; i < thread_count; i++)
         {
-            thread_index[i] = i;
-            pthread_create(&threads[i], NULL, update_acceleration_v1, &thread_input[i]);
-        }
-
-        // Join N number of threads after updating acceleration
-        for (int i = 0; i < thread_count; i++)
-        {
-            pthread_join(threads[i], NULL);
+            update_acceleration_v1(&thread_input[omp_get_thread_num()]);
         }
 
         // Start N number of threads for updating velocity
+        #pragma omp parallel for num_threads(thread_count)
         for (int i = 0; i < thread_count; i++)
         {
-            thread_index[i] = i;
-            pthread_create(&threads[i], NULL, update_velocity_v1, &thread_input[i]);
-        }
-
-        // Join N number of threads after updating velocity
-        for (int i = 0; i < thread_count; i++)
-        {
-            pthread_join(threads[i], NULL);
+            update_velocity_v1(&thread_input[omp_get_thread_num()]);
         }
 
         // Start N number of threads for updating position
+        #pragma omp parallel for num_threads(thread_count)
         for (int i = 0; i < thread_count; i++)
         {
-            thread_index[i] = i;
-            pthread_create(&threads[i], NULL, update_position_v1, &thread_input[i]);
-        }
-
-        // Join N number of threads after updating position
-        for (int i = 0; i < thread_count; i++)
-        {
-            pthread_join(threads[i], NULL);
+            update_position_v1(&thread_input[omp_get_thread_num()]);
         }
     }
 
