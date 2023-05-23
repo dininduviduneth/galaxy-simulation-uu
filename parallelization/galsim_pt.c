@@ -5,7 +5,7 @@
 #include <sys/time.h>
 #include <pthread.h>
 
-#define VERSION 1
+#define VERSION 2
 
 typedef struct
 {

@@ -5,7 +5,7 @@
 #include <sys/time.h>
 #include <omp.h>
 
-#define VERSION 1
+#define VERSION 2
 
 typedef struct
 {
@@ -116,21 +116,21 @@ int main(int argc, char *argv[])
     for (int step = 0; step < nsteps; step++)
     {
         // Start N number of threads for updating acceleration
-        #pragma omp parallel for num_threads(thread_count)
+        #pragma omp parallel for simd num_threads(thread_count)
         for (int i = 0; i < thread_count; i++)
         {
             update_acceleration_v1(&thread_input[omp_get_thread_num()]);
         }
 
         // Start N number of threads for updating velocity
-        #pragma omp parallel for num_threads(thread_count)
+        #pragma omp parallel for simd num_threads(thread_count)
         for (int i = 0; i < thread_count; i++)
         {
             update_velocity_v1(&thread_input[omp_get_thread_num()]);
         }
 
         // Start N number of threads for updating position
-        #pragma omp parallel for num_threads(thread_count)
+        #pragma omp parallel for simd num_threads(thread_count)
         for (int i = 0; i < thread_count; i++)
         {
             update_position_v1(&thread_input[omp_get_thread_num()]);
@@ -160,29 +160,22 @@ int main(int argc, char *argv[])
         thread_input[i] = temp_thread_input;
     }
 
-    // pthread_mutex_init(&mutex, NULL);
-
     for (int step = 0; step < nsteps; step++)
     {
         // Start N number of threads for updating acceleration
-        #pragma omp parallel for num_threads(thread_count)
+        #pragma omp parallel for simd num_threads(thread_count)
         for (int i = 0; i < thread_count; i++)
         {
-            // thread_index[i] = i;
-            // pthread_create(&threads[i], NULL, update_acceleration_v2, &thread_input[i]);
             update_acceleration_v2(&thread_input[omp_get_thread_num()]);
         }
 
         // Start N number of threads for updating position
-        #pragma omp parallel for num_threads(thread_count)
+        #pragma omp parallel for simd num_threads(thread_count)
         for (int i = 0; i < thread_count; i++)
         {
-            // thread_index[i] = i;
-            // pthread_create(&threads[i], NULL, update_position_v2, &thread_input[i]);
             update_position_v2(&thread_input[omp_get_thread_num()]);
         }
     }
-    // pthread_mutex_destroy(&mutex);
     
 #endif
 
@@ -330,7 +323,7 @@ void *update_velocity_v2(void *arg)
     ThreadInput *thread_input = (ThreadInput *)arg;
     int start_n = thread_input->start_n;
     int end_n = thread_input->end_n;
-
+    
     for (int i = thread_input->start_n; i < thread_input->end_n; i++)
     {
         thread_input->particles->velx[i] += thread_input->particles->accx[i] * thread_input->delta_t;
