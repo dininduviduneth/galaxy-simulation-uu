@@ -4,23 +4,21 @@
 #include <math.h>
 #include <sys/time.h>
 
-#define VERSION 2
+#define VERSION 1
 
 typedef struct
 {
-    double* posx;
-    double* posy;
-    double* mass;
-    double* velx;
-    double* vely;
-    double* accx;
-    double* accy;
-    double* brightness;
-} Particles;
+    double posx;
+    double posy;
+    double mass;
+    double velx;
+    double vely;
+    double brightness;
+} Particle;
 
-Particles *read_data_v1(int particle_count, char *filename);
-void save_file_v1(int particle_count, Particles *particles);
-void print_data(int N, Particles *particles);
+Particle *read_data_v1(int particle_count, char *filename);
+void save_file_v1(int particle_count, Particle *particles);
+void print_data(int N, Particle *particles);
 double get_wall_seconds();
 
 int main(int argc, char *argv[])
@@ -50,7 +48,7 @@ int main(int argc, char *argv[])
     }
 
     /* Read files. */
-    Particles *particles = read_data_v1(N, filename);
+    Particle *particles = read_data_v1(N, filename);
 
     if (particles == NULL)
     {
@@ -63,44 +61,40 @@ int main(int argc, char *argv[])
     double rx_div, ry_div;
     double startTime = get_wall_seconds();
 
-#if VERSION == 1
-    // Start simulation - Optimized version 1
+#if VERSION == 0
+    // Start simulation - Unoptimized version
     for (int step = 0; step < nsteps; step++)
     {
-        // Only the position of particles is needed to simulate the movement of other particles
-        // Therefore within the first loop accelerations are calculated and all the velocities for n+1 step is updated appropriately
-        // Positions cannot be updated witin the same loop
         for (int i = 0; i < N; i++)
         {
-            particles->accx[i] = 0.0;
-            particles->accy[i] = 0.0;
+            aXi = 0.0;
+            aYi = 0.0;
             for (int j = 0; j < N; j++)
             {
                 if (i != j)
                 {
-                    rx = particles->posx[i] - particles->posx[j];
-                    ry = particles->posy[i] - particles->posy[j];
-                    
-                    r = sqrt(rx * rx + ry * ry);
+                    rx = particles[i].posx - particles[j].posx;
+                    ry = particles[i].posy - particles[j].posy;
+                    r = sqrt(pow(rx, 2) + pow(ry, 2));
                     rr = r + epsilon;
-                    div_1_rr = 1 / (rr * rr * rr);
-                    particles->accx[i] += particles->mass[j] * rx * div_1_rr;
-                    particles->accy[i] += particles->mass[j] * ry * div_1_rr;
+                    aXi += particles[j].mass * rx / pow(rr, 3);
+                    aYi += particles[j].mass * ry / pow(rr, 3);
                 }
             }
-            particles->velx[i] += dtG * particles->accx[i];
-            particles->vely[i] += dtG * particles->accy[i];
+            particles[i].velx = particles[i].velx + delta_t * (-1) * G * aXi;
+            particles[i].vely = particles[i].vely + delta_t * (-1) * G * aYi;
         }
 
         for (int i = 0; i < N; i++)
         {
-            particles->posx[i] += particles->velx[i] * delta_t;
-            particles->posy[i] += particles->vely[i] * delta_t;
+            particles[i].posx = particles[i].posx + particles[i].velx * delta_t;
+            particles[i].posy = particles[i].posy + particles[i].vely * delta_t;
         }
     }
+    // End simulation - Unoptimized version
 
-#else
-    // Start simulation - Optimized version 3
+#elif VERSION == 1
+    // Start simulation - Optimized version
     for (int step = 0; step < nsteps; step++)
     {
         // Only the position of particles is needed to simulate the movement of other particles
@@ -108,12 +102,47 @@ int main(int argc, char *argv[])
         // Positions cannot be updated witin the same loop
         for (int i = 0; i < N; i++)
         {
-            particles->accx[i] = 0.0;
-            particles->accy[i] = 0.0;
-            for (int j = i + 1; j < N; j++)
+            aXi = 0.0;
+            aYi = 0.0;
+            for (int j = 0; j < N; j++)
             {
-                rx = particles->posx[i] - particles->posx[j];
-                ry = particles->posy[i] - particles->posy[j];
+                if (i != j)
+                {
+                    rx = particles[i].posx - particles[j].posx;
+                    ry = particles[i].posy - particles[j].posy;
+                    r = sqrt(rx * rx + ry * ry);
+                    rr = r + epsilon;
+                    div_1_rr = 1 / (rr * rr * rr);
+                    aXi += particles[j].mass * rx * div_1_rr;
+                    aYi += particles[j].mass * ry * div_1_rr;
+                }
+            }
+            particles[i].velx = particles[i].velx + delta_t * (-G) * aXi;
+            particles[i].vely = particles[i].vely + delta_t * (-G) * aYi;
+        }
+
+        for (int i = 0; i < N; i++)
+        {
+            particles[i].posx = particles[i].posx + particles[i].velx * delta_t;
+            particles[i].posy = particles[i].posy + particles[i].vely * delta_t;
+        }
+    }
+
+#else
+    // Start simulation - Optimized version 2
+    for (int step = 0; step < nsteps; step++)
+    {
+        // Only the position of particles is needed to simulate the movement of other particles
+        // Therefore within the first loop accelerations are calculated and all the velocities for n+1 step is updated appropriately
+        // Positions cannot be updated witin the same loop
+        for (int i = 0; i < N; i++)
+        {
+            aXi = 0.0;
+            aYi = 0.0;
+            for (int j = 0; j <i; j++)
+            {
+                rx = particles[i].posx - particles[j].posx;
+                ry = particles[i].posy - particles[j].posy;
                 r = sqrt(rx * rx + ry * ry);
                 rr = r + epsilon;
                 div_1_rr = dtG / (rr * rr * rr);
@@ -121,21 +150,21 @@ int main(int argc, char *argv[])
                 ry_div = ry*div_1_rr;
 
                 // Calculating the acceleration of the i-th particle based on the forces applied by N-i particles
-                particles->accx[i] += particles->mass[j] * rx_div / delta_t;
-                particles->accy[i] += particles->mass[j] * ry_div / delta_t;
+                aXi += particles[j].mass * rx_div;
+                aYi += particles[j].mass * ry_div;
 
                 // Substracting the velocity change on the j-th particle due to the equal and opposite reaction
-                particles->velx[j] -=  particles->mass[i] * rx_div;
-                particles->vely[j] -=  particles->mass[i] * ry_div;
+                particles[j].velx -=  particles[i].mass * rx_div;
+                particles[j].vely -=  particles[i].mass * ry_div;
             }
-            particles->velx[i] += particles->accx[i] * delta_t;
-            particles->vely[i] += particles->accy[i] * delta_t;
+            particles[i].velx += aXi;
+            particles[i].vely += aYi;
         }
 
         for (int i = 0; i < N; i++)
         {
-            particles->posx[i] += particles->velx[i] * delta_t;
-            particles->posy[i] += particles->vely[i] * delta_t;
+            particles[i].posx = particles[i].posx + particles[i].velx * delta_t;
+            particles[i].posy = particles[i].posy + particles[i].vely * delta_t;
         }
     }
 
@@ -149,14 +178,6 @@ int main(int argc, char *argv[])
     // SAVE DATA TO FILE
     save_file_v1(N, particles);
 
-    free(particles->posx);
-    free(particles->posy);
-    free(particles->mass);
-    free(particles->velx);
-    free(particles->vely);
-    free(particles->accx);
-    free(particles->accy);
-    free(particles->brightness);
     free(particles);
     return 0;
 }
@@ -169,7 +190,7 @@ double get_wall_seconds()
     return seconds;
 }
 
-Particles *read_data_v1(int particle_count, char *filename)
+Particle *read_data_v1(int particle_count, char *filename)
 {
 
     /* Open input file and determine its size. */
@@ -202,65 +223,48 @@ Particles *read_data_v1(int particle_count, char *filename)
         printf("Failed to read.\n");
     }
 
-    Particles *particles = malloc(sizeof(Particles));
-
-    // Particle *particles = malloc(particle_count * sizeof(Particle));
-
-    // Allocate memory for each array member
-    particles->posx = malloc(particle_count * sizeof(double));
-    particles->posy = malloc(particle_count * sizeof(double));
-    particles->mass = malloc(particle_count * sizeof(double));
-    particles->velx = malloc(particle_count * sizeof(double));
-    particles->vely = malloc(particle_count * sizeof(double));
-    particles->accx = malloc(particle_count * sizeof(double));
-    particles->accy = malloc(particle_count * sizeof(double));
-    particles->brightness = malloc(particle_count * sizeof(double));
+    Particle *particles = malloc(particle_count * sizeof(Particle));
 
     for (int i = 0; i < particle_count; i++)
     {
-        particles->posx[i] = buffer[(6 * i) + 0];
-        particles->posy[i] = buffer[(6 * i) + 1];
-        particles->mass[i] = buffer[(6 * i) + 2];
-        particles->velx[i] = buffer[(6 * i) + 3];
-        particles->vely[i] = buffer[(6 * i) + 4];
-        particles->brightness[i] = buffer[(6 * i) + 5];
-        // we don't initiate accx and accy at this point - the values will be null
+        particles[i].posx = buffer[(6 * i) + 0];
+        particles[i].posy = buffer[(6 * i) + 1];
+        particles[i].mass = buffer[(6 * i) + 2];
+        particles[i].velx = buffer[(6 * i) + 3];
+        particles[i].vely = buffer[(6 * i) + 4];
+        particles[i].brightness = buffer[(6 * i) + 5];
     }
 
     fclose(input_file);
     return particles;
 }
 
-void save_file_v1(int particle_count, Particles *particles)
+void save_file_v1(int particle_count, Particle *particles)
 {
 
     FILE *output_file = fopen("result.gal", "wb");
-    if (!output_file) {
-        printf("Failed to open the output file.\n");
-        return;
-}
 
     for (int i = 0; i < particle_count; i++)
     {
-        fwrite(&(particles->posx[i]), sizeof(double), 1, output_file);
-        fwrite(&(particles->posy[i]), sizeof(double), 1, output_file);
-        fwrite(&(particles->mass[i]), sizeof(double), 1, output_file);
-        fwrite(&(particles->velx[i]), sizeof(double), 1, output_file);
-        fwrite(&(particles->vely[i]), sizeof(double), 1, output_file);
-        fwrite(&(particles->brightness[i]), sizeof(double), 1, output_file);
+        fwrite(&particles[i].posx, sizeof(double), 1, output_file);
+        fwrite(&particles[i].posy, sizeof(double), 1, output_file);
+        fwrite(&particles[i].mass, sizeof(double), 1, output_file);
+        fwrite(&particles[i].velx, sizeof(double), 1, output_file);
+        fwrite(&particles[i].vely, sizeof(double), 1, output_file);
+        fwrite(&particles[i].brightness, sizeof(double), 1, output_file);
     }
     fclose(output_file);
 }
 
-void print_data(int N, Particles *particles)
+void print_data(int N, Particle *particles)
 {
 
     for (int i = 0; i < N; i++)
     {
         printf("Star %d data:\n", i + 1);
-        printf("Position: (%f, %f)\n", particles->posx[i], particles->posy[i]);
-        printf("Mass: %f\n", particles->mass[i]);
-        printf("Veloity: (%f, %f)\n", particles->velx[i], particles->vely[i]);
-        printf("Brightness: %f\n\n", particles->brightness[i]);
+        printf("Position: (%f, %f)\n", particles[i].posx, particles[i].posy);
+        printf("Mass: %f\n", particles[i].mass);
+        printf("Veloity: (%f, %f)\n", particles[i].velx, particles[i].vely);
+        printf("Brightness: %f\n\n", particles[i].brightness);
     }
 }
