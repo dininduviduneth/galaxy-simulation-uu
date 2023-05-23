@@ -335,7 +335,7 @@ void *update_acceleration_v2(void *arg)
             //thread_input->particles->accy[i] += thread_input->particles->mass[j] * ry_div / thread_input->delta_t;
             tmp_velx[i] += thread_input->particles->mass[j] * rx_div;
             tmp_vely[i] += thread_input->particles->mass[j] * ry_div;
-	    // Substracting the velocity change on the j-th particle due to the equal and opposite reaction
+	        // Substracting the velocity change on the j-th particle due to the equal and opposite reaction
             tmp_velx[j] -=  thread_input->particles->mass[i] * rx_div;
             tmp_vely[j] -=  thread_input->particles->mass[i] * ry_div;
         }
@@ -351,9 +351,6 @@ void *update_acceleration_v2(void *arg)
     }
 
     //printf("Velocity--x after update: %lf, %d\n", thread_input->particles->velx[3],  thread_input->start_n);
-    free(tmp_velx);
-    free(tmp_vely);
-
     return NULL;
 }
 

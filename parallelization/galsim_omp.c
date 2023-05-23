@@ -56,7 +56,7 @@ int main(int argc, char *argv[])
     if (argc != 7)
     {
         printf("Incorrect number of arguments!\n");
-        printf("Usage: %s N filename nsteps delta_t graphics\n", argv[0]);
+        printf("Usage: %s N filename nsteps delta_t graphics thread_count\n", argv[0]);
         return 0;
     }
 
@@ -138,10 +138,8 @@ int main(int argc, char *argv[])
     }
 
 #elif VERSION == 2
-    // Start simulation - Parallelized version 2 with Pthreads
+    // Start simulation - Parallelized version 2 with OpenMP
 
-    /* Create multiple threads */
-    pthread_t threads[thread_count];
     /* Create an array of indeces */
     int thread_index[thread_count];
     /* Create an array of ThreadInputs */
@@ -162,37 +160,29 @@ int main(int argc, char *argv[])
         thread_input[i] = temp_thread_input;
     }
 
-    pthread_mutex_init(&mutex, NULL);
+    // pthread_mutex_init(&mutex, NULL);
 
     for (int step = 0; step < nsteps; step++)
     {
         // Start N number of threads for updating acceleration
+        #pragma omp parallel for num_threads(thread_count)
         for (int i = 0; i < thread_count; i++)
         {
-            thread_index[i] = i;
-            pthread_create(&threads[i], NULL, update_acceleration_v2, &thread_input[i]);
-        }
-
-        // Join N number of threads after updating acceleration
-        for (int i = 0; i < thread_count; i++)
-        {
-            pthread_join(threads[i], NULL);
+            // thread_index[i] = i;
+            // pthread_create(&threads[i], NULL, update_acceleration_v2, &thread_input[i]);
+            update_acceleration_v2(&thread_input[omp_get_thread_num()]);
         }
 
         // Start N number of threads for updating position
+        #pragma omp parallel for num_threads(thread_count)
         for (int i = 0; i < thread_count; i++)
         {
-            thread_index[i] = i;
-            pthread_create(&threads[i], NULL, update_position_v2, &thread_input[i]);
-        }
-
-        // Join N number of threads after updating position
-        for (int i = 0; i < thread_count; i++)
-        {
-            pthread_join(threads[i], NULL);
+            // thread_index[i] = i;
+            // pthread_create(&threads[i], NULL, update_position_v2, &thread_input[i]);
+            update_position_v2(&thread_input[omp_get_thread_num()]);
         }
     }
-    pthread_mutex_destroy(&mutex);
+    // pthread_mutex_destroy(&mutex);
     
 #endif
 
@@ -324,15 +314,13 @@ void *update_acceleration_v2(void *arg)
     //printf("Velocity-tmp-x after loop: %lf, %d\n", tmp_velx[3],  thread_input->start_n);
 
     for (int m = 0; m < thread_input->N; m++){
-        pthread_mutex_lock(&mutex);
+        #pragma omp critical
         thread_input->particles->velx[m] += tmp_velx[m];
+        #pragma omp critical
         thread_input->particles->vely[m] += tmp_vely[m];
-        pthread_mutex_unlock(&mutex);
     }
 
     //printf("Velocity--x after update: %lf, %d\n", thread_input->particles->velx[3],  thread_input->start_n);
-    free(tmp_velx);
-    free(tmp_vely);
 
     return NULL;
 }
