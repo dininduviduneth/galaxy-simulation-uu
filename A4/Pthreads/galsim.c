@@ -52,7 +52,7 @@ pthread_mutex_t mutex;
 int main(int argc, char *argv[])
 {
 
-    // Combine all validation (including type checks) into one method validateInput()
+    // Input argument validation
     if (argc != 7)
     {
         printf("Incorrect number of arguments!\n");
@@ -67,6 +67,7 @@ int main(int argc, char *argv[])
     const double delta_t = (double)atof(argv[4]);
     int graphics = atoi(argv[5]);
     int thread_count = atoi(argv[6]);
+    
     const double epsilon = 0.001;
     const double G = 100.0 / N;
     const double dtG = delta_t * (-G);
@@ -309,12 +310,11 @@ void *update_acceleration_v2(void *arg)
     // Variables needed for calcluations
     double rx, ry, r, rr, div_1_rr, rx_div, ry_div;
 
-    double *tmp_velx = malloc(thread_input->N * sizeof(double));
-    double *tmp_vely = malloc(thread_input->N * sizeof(double));
+    double tmp_velx[thread_input->N];
+    double tmp_vely[thread_input->N];
+
     memset(tmp_velx, 0, thread_input->N);
     memset(tmp_vely, 0, thread_input->N);
-
-    //printf("Velocity-tmp-x: %lf,, %d\n", tmp_velx[3],  thread_input->start_n);
 
     for (int i = thread_input->start_n; i < thread_input->end_n; i++)
     {
@@ -331,8 +331,6 @@ void *update_acceleration_v2(void *arg)
             ry_div = ry*div_1_rr;
 
             // Calculating the acceleration of the i-th particle based on the forces applied by N-i particles
-            //thread_input->particles->accx[i] += thread_input->particles->mass[j] * rx_div / thread_input->delta_t;
-            //thread_input->particles->accy[i] += thread_input->particles->mass[j] * ry_div / thread_input->delta_t;
             tmp_velx[i] += thread_input->particles->mass[j] * rx_div;
             tmp_vely[i] += thread_input->particles->mass[j] * ry_div;
 	        // Substracting the velocity change on the j-th particle due to the equal and opposite reaction
@@ -341,8 +339,6 @@ void *update_acceleration_v2(void *arg)
         }
     }
 
-    //printf("Velocity-tmp-x after loop: %lf, %d\n", tmp_velx[3],  thread_input->start_n);
-
     for (int m = 0; m < thread_input->N; m++){
         pthread_mutex_lock(&mutex);
         thread_input->particles->velx[m] += tmp_velx[m];
@@ -350,7 +346,6 @@ void *update_acceleration_v2(void *arg)
         pthread_mutex_unlock(&mutex);
     }
 
-    //printf("Velocity--x after update: %lf, %d\n", thread_input->particles->velx[3],  thread_input->start_n);
     return NULL;
 }
 

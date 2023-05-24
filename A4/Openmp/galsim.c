@@ -52,7 +52,7 @@ pthread_mutex_t mutex;
 int main(int argc, char *argv[])
 {
 
-    // Combine all validation (including type checks) into one method validateInput()
+    // Input argument validation
     if (argc != 7)
     {
         printf("Incorrect number of arguments!\n");
@@ -274,6 +274,7 @@ void *update_acceleration_v2(void *arg)
 
     double *tmp_velx = malloc(thread_input->N * sizeof(double));
     double *tmp_vely = malloc(thread_input->N * sizeof(double));
+    
     memset(tmp_velx, 0, thread_input->N);
     memset(tmp_vely, 0, thread_input->N);
 
@@ -294,17 +295,13 @@ void *update_acceleration_v2(void *arg)
             ry_div = ry*div_1_rr;
 
             // Calculating the acceleration of the i-th particle based on the forces applied by N-i particles
-            //thread_input->particles->accx[i] += thread_input->particles->mass[j] * rx_div / thread_input->delta_t;
-            //thread_input->particles->accy[i] += thread_input->particles->mass[j] * ry_div / thread_input->delta_t;
             tmp_velx[i] += thread_input->particles->mass[j] * rx_div;
             tmp_vely[i] += thread_input->particles->mass[j] * ry_div;
-	    // Substracting the velocity change on the j-th particle due to the equal and opposite reaction
+	        // Substracting the velocity change on the j-th particle due to the equal and opposite reaction
             tmp_velx[j] -=  thread_input->particles->mass[i] * rx_div;
             tmp_vely[j] -=  thread_input->particles->mass[i] * ry_div;
         }
     }
-
-    //printf("Velocity-tmp-x after loop: %lf, %d\n", tmp_velx[3],  thread_input->start_n);
 
     for (int m = 0; m < thread_input->N; m++){
         #pragma omp critical
@@ -312,8 +309,6 @@ void *update_acceleration_v2(void *arg)
         #pragma omp critical
         thread_input->particles->vely[m] += tmp_vely[m];
     }
-
-    //printf("Velocity--x after update: %lf, %d\n", thread_input->particles->velx[3],  thread_input->start_n);
 
     return NULL;
 }
