@@ -137,6 +137,12 @@ int main(int argc, char *argv[])
         }
     }
 
+    // free thread_input memory
+    for (int i = 0; i < thread_count; i++)
+    {
+        free(&thread_input[i]);
+    }
+
 #elif VERSION == 2
     // Start simulation - Parallelized version 2 with OpenMP
 
