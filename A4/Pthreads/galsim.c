@@ -104,15 +104,27 @@ int main(int argc, char *argv[])
     // initialize the thread input array
     for (int i = 0; i < thread_count; i++)
     {
-        ThreadInput temp_thread_input = {
-            (N / thread_count) * i,
-            (N / thread_count) * (i + 1),
-            N,
-            epsilon,
-            dtG,
-            delta_t,
-            particles
-        };
+        ThreadInput temp_thread_input;
+        
+        if (i == thread_count - 1) {
+            temp_thread_input.start_n = (N / thread_count) * i;
+            temp_thread_input.end_n = N;
+            temp_thread_input.N = N;
+            temp_thread_input.epsilon = epsilon;
+            temp_thread_input.dtG = dtG;
+            temp_thread_input.delta_t = delta_t;
+            temp_thread_input.particles = particles;
+        }
+        else {
+            temp_thread_input.start_n = (N / thread_count) * i;
+            temp_thread_input.end_n = (N / thread_count) * (i + 1);
+            temp_thread_input.N = N;
+            temp_thread_input.epsilon = epsilon;
+            temp_thread_input.dtG = dtG;
+            temp_thread_input.delta_t = delta_t;
+            temp_thread_input.particles = particles;
+        }
+        
         thread_input[i] = temp_thread_input;
     }
 
@@ -171,15 +183,27 @@ int main(int argc, char *argv[])
     // initialize the thread input array
     for (int i = 0; i < thread_count; i++)
     {
-        ThreadInput temp_thread_input = {
-            (N / thread_count) * i,
-            (N / thread_count) * (i + 1),
-            N,
-            epsilon,
-            dtG,
-            delta_t,
-            particles
-        };
+        ThreadInput temp_thread_input;
+        
+        if (i == thread_count - 1) {
+            temp_thread_input.start_n = (N / thread_count) * i;
+            temp_thread_input.end_n = N;
+            temp_thread_input.N = N;
+            temp_thread_input.epsilon = epsilon;
+            temp_thread_input.dtG = dtG;
+            temp_thread_input.delta_t = delta_t;
+            temp_thread_input.particles = particles;
+        }
+        else {
+            temp_thread_input.start_n = (N / thread_count) * i;
+            temp_thread_input.end_n = (N / thread_count) * (i + 1);
+            temp_thread_input.N = N;
+            temp_thread_input.epsilon = epsilon;
+            temp_thread_input.dtG = dtG;
+            temp_thread_input.delta_t = delta_t;
+            temp_thread_input.particles = particles;
+        }
+        
         thread_input[i] = temp_thread_input;
     }
 
