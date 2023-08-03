@@ -56,7 +56,7 @@ int main(int argc, char *argv[])
     if (argc != 7)
     {
         printf("Incorrect number of arguments!\n");
-        printf("Usage: %s N filename nsteps delta_t graphics\n", argv[0]);
+        printf("Usage: %s N filename nsteps delta_t graphics thread_count\n", argv[0]);
         return 0;
     }
 
@@ -71,6 +71,10 @@ int main(int argc, char *argv[])
     const double epsilon = 0.001;
     const double G = 100.0 / N;
     const double dtG = delta_t * (-G);
+
+    if (thread_count > N) {
+        thread_count = N;
+    }
 
     if (graphics == 1)
     {
@@ -205,6 +209,12 @@ int main(int argc, char *argv[])
         }
         
         thread_input[i] = temp_thread_input;
+    }
+
+    // TESTING
+    for (int i = 0; i < thread_count; i++)
+    {
+        printf("Thread No: %d --> (%d, %d)\n", i, thread_input[i].start_n, thread_input[i].end_n);
     }
 
     pthread_mutex_init(&mutex, NULL);

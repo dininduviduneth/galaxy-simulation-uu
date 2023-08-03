@@ -3,4 +3,4 @@ galsim:
 	gcc -O3 -o galsim galsim.c -lm -lpthread 
 
 clean:
-	rm -f galsim
+	rm -f galsim result.gal
