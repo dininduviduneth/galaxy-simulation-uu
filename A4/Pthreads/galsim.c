@@ -67,14 +67,10 @@ int main(int argc, char *argv[])
     const double delta_t = (double)atof(argv[4]);
     int graphics = atoi(argv[5]);
     int thread_count = atoi(argv[6]);
-    
+
     const double epsilon = 0.001;
     const double G = 100.0 / N;
     const double dtG = delta_t * (-G);
-
-    if (thread_count > N) {
-        thread_count = N;
-    }
 
     if (graphics == 1)
     {
@@ -134,7 +130,7 @@ int main(int argc, char *argv[])
 
     for (int step = 0; step < nsteps; step++)
     {
-        // Start N number of threads for updating acceleration
+	    // Start N number of threads for updating acceleration
         for (int i = 0; i < thread_count; i++)
         {
             thread_index[i] = i;
@@ -185,7 +181,7 @@ int main(int argc, char *argv[])
     ThreadInput thread_input[thread_count];
 
     // initialize the thread input array
-    for (int i = 0; i < thread_count; i++)
+        for (int i = 0; i < thread_count; i++)
     {
         ThreadInput temp_thread_input;
         
@@ -197,7 +193,7 @@ int main(int argc, char *argv[])
             temp_thread_input.dtG = dtG;
             temp_thread_input.delta_t = delta_t;
             temp_thread_input.particles = particles;
-        }
+       }
         else {
             temp_thread_input.start_n = (N / thread_count) * i;
             temp_thread_input.end_n = (N / thread_count) * (i + 1);
@@ -209,12 +205,6 @@ int main(int argc, char *argv[])
         }
         
         thread_input[i] = temp_thread_input;
-    }
-
-    // TESTING
-    for (int i = 0; i < thread_count; i++)
-    {
-        printf("Thread No: %d --> (%d, %d)\n", i, thread_input[i].start_n, thread_input[i].end_n);
     }
 
     pthread_mutex_init(&mutex, NULL);
@@ -343,12 +333,14 @@ void *update_acceleration_v2(void *arg)
 
     // Variables needed for calcluations
     double rx, ry, r, rr, div_1_rr, rx_div, ry_div;
-
+    
     double tmp_velx[thread_input->N];
     double tmp_vely[thread_input->N];
 
-    memset(tmp_velx, 0, thread_input->N);
-    memset(tmp_vely, 0, thread_input->N);
+    for (int i = 0; i < thread_input->N; i++) {
+        tmp_velx[i] = 0.0;
+        tmp_vely[i] = 0.0;
+    }
 
     for (int i = thread_input->start_n; i < thread_input->end_n; i++)
     {

@@ -44,9 +44,6 @@ void *update_acceleration_v2(void *arg);
 void *update_velocity_v2(void *arg);
 void *update_position_v2(void *arg);
 
-// Create a mutex variable
-pthread_mutex_t mutex;
-
 #endif
 
 int main(int argc, char *argv[])
@@ -295,14 +292,14 @@ void *update_acceleration_v2(void *arg)
 
     // Variables needed for calcluations
     double rx, ry, r, rr, div_1_rr, rx_div, ry_div;
-
-    double *tmp_velx = malloc(thread_input->N * sizeof(double));
-    double *tmp_vely = malloc(thread_input->N * sizeof(double));
     
-    memset(tmp_velx, 0, thread_input->N);
-    memset(tmp_vely, 0, thread_input->N);
+    double tmp_velx[thread_input->N];
+    double tmp_vely[thread_input->N];
 
-    //printf("Velocity-tmp-x: %lf,, %d\n", tmp_velx[3],  thread_input->start_n);
+    for (int i = 0; i < thread_input->N; i++) {
+        tmp_velx[i] = 0.0;
+        tmp_vely[i] = 0.0;
+    }
 
     for (int i = thread_input->start_n; i < thread_input->end_n; i++)
     {
